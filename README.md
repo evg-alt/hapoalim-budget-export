@@ -94,15 +94,17 @@ Plot daily balance by year (all income and expenses, every account and card comb
 
 ```bash
 pip install -r analysis/requirements.txt
-npm run plot -- --final-balance 15000
+python3 analysis/plot_balance.py output/hapoalim_2024-02-01_2026-07-31.csv \
+  -o output/balance_by_year.png \
+  --final-balance 1500
 ```
 
-Uses the newest `output/hapoalim_*.csv` by default. Options:
+Omit the CSV path to use the newest `output/hapoalim_*.csv`. Options:
 
 | Flag | Meaning |
 |------|---------|
 | `--initial-balance 12000` | Balance on the day before the first transaction |
-| `--final-balance 15000` | Balance on the last day in the data (easier if you know today's balance) |
+| `--final-balance 1500` | Balance on the last day in the data (easier if you know today's balance) |
 | `--account 123-456789` | Optional: limit to one account/card only |
 | `-o output/balance_by_year.png` | Output image path |
 | `--show` | Open the plot window |

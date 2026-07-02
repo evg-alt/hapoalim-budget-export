@@ -7,8 +7,7 @@
     "postinstall": "playwright install chromium",
     "dev:keep-open": "node dev/keep-open.js",
     "dev:snapshot": "node dev/snapshot.js",
-    "dev:switch-mode": "node dev/switch-mode.js",
-    "plot": "python3 analysis/plot_balance.py"
+    "dev:switch-mode": "node dev/switch-mode.js"
   },
   "devDependencies": {
     "playwright": "^1.49.0"
