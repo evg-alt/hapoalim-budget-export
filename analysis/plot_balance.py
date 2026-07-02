@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plot daily checking-account balance by year from Hapoalim PFM CSV exports."""
+"""Plot daily balance by year from Hapoalim PFM CSV exports."""
 
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ import pandas as pd
 
 TYPE_INCOME = "הכנסות"
 TYPE_EXPENSES = "הוצאות"
-DEFAULT_ACCOUNT = "123-456789"
 COLOR = "#e8a020"
 
 
@@ -28,19 +27,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--account",
-        default=DEFAULT_ACCOUNT,
-        help=f"Filter to this account (default: checking {DEFAULT_ACCOUNT})",
+        help="Optional: filter to a single account/card (default: all transactions)",
     )
-    parser.add_argument(
-        "--all-accounts",
-        action="store_true",
-        help="Include all accounts instead of filtering to --account",
-    )
-    parser.add_argument(
+    balance_group = parser.add_mutually_exclusive_group()
+    balance_group.add_argument(
         "--initial-balance",
         type=float,
-        default=0.0,
-        help="Balance on the day before the first transaction (default: 0)",
+        help="Balance on the day before the first transaction",
+    )
+    balance_group.add_argument(
+        "--final-balance",
+        type=float,
+        help="Balance on the last day in the data (initial balance is derived)",
     )
     parser.add_argument(
         "-o",
@@ -96,7 +94,7 @@ def load_transactions(csv_path: Path, account: str | None) -> pd.DataFrame:
     return df.sort_values("תאריך")
 
 
-def build_daily_balance(df: pd.DataFrame, initial_balance: float) -> pd.DataFrame:
+def build_daily_net(df: pd.DataFrame) -> pd.Series:
     daily_net = (
         df.groupby(df["תאריך"].dt.normalize())["signed_amount"]
         .sum()
@@ -106,8 +104,22 @@ def build_daily_balance(df: pd.DataFrame, initial_balance: float) -> pd.DataFram
     start = daily_net.index.min()
     end = daily_net.index.max()
     full_range = pd.date_range(start, end, freq="D")
-    daily_net = daily_net.reindex(full_range, fill_value=0.0)
+    return daily_net.reindex(full_range, fill_value=0.0)
 
+
+def resolve_initial_balance(
+    daily_net: pd.Series,
+    initial_balance: float | None,
+    final_balance: float | None,
+) -> float:
+    if initial_balance is not None:
+        return initial_balance
+    if final_balance is not None:
+        return final_balance - daily_net.cumsum().iloc[-1]
+    return 0.0
+
+
+def build_daily_balance(daily_net: pd.Series, initial_balance: float) -> pd.DataFrame:
     balance = initial_balance + daily_net.cumsum()
     daily = pd.DataFrame({"balance": balance})
     daily["year"] = daily.index.year
@@ -162,15 +174,17 @@ def plot_balance_by_year(daily: pd.DataFrame, output: Path, title_suffix: str) -
 def main() -> None:
     args = parse_args()
     csv_path = resolve_csv(args.csv)
-    account = None if args.all_accounts else args.account
 
-    df = load_transactions(csv_path, account)
-    daily = build_daily_balance(df, args.initial_balance)
+    df = load_transactions(csv_path, args.account)
+    daily_net = build_daily_net(df)
+    initial_balance = resolve_initial_balance(
+        daily_net,
+        args.initial_balance,
+        args.final_balance,
+    )
+    daily = build_daily_balance(daily_net, initial_balance)
 
-    if account is None:
-        title_suffix = " (all accounts)"
-    else:
-        title_suffix = f" ({account})"
+    title_suffix = f" ({args.account})" if args.account else ""
 
     plot_balance_by_year(daily, args.output, title_suffix)
 
@@ -178,11 +192,18 @@ def main() -> None:
     end = daily.index.max().date()
     print(f"Source: {csv_path}")
     print(f"Transactions: {len(df)} | Days: {len(daily)} | Range: {start} → {end}")
-    if args.initial_balance == 0:
+    if args.final_balance is not None:
         print(
-            "Note: --initial-balance is 0, so Y values are relative. "
-            "Pass e.g. --initial-balance 12000 for real balances."
+            f"Anchored to final balance {args.final_balance:,.2f} on {end} "
+            f"(derived initial balance: {initial_balance:,.2f})"
         )
+    elif args.initial_balance is None:
+        print(
+            "Note: no balance anchor set, so Y values are relative. "
+            "Pass --initial-balance or --final-balance for real balances."
+        )
+    else:
+        print(f"Initial balance: {initial_balance:,.2f}")
 
     if args.show:
         plt.show()

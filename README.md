@@ -90,11 +90,11 @@ Sample output (anonymized; full files in [`examples/`](examples/)):
 
 ## Balance chart
 
-Plot daily checking-account balance by year (similar to a bank balance sawtooth chart):
+Plot daily balance by year (all income and expenses, every account and card combined):
 
 ```bash
 pip install -r analysis/requirements.txt
-npm run plot -- --initial-balance 12000
+npm run plot -- --final-balance 15000
 ```
 
 Uses the newest `output/hapoalim_*.csv` by default. Options:
@@ -102,12 +102,12 @@ Uses the newest `output/hapoalim_*.csv` by default. Options:
 | Flag | Meaning |
 |------|---------|
 | `--initial-balance 12000` | Balance on the day before the first transaction |
-| `--account 123-456789` | Checking account only (default) |
-| `--all-accounts` | Income minus all expenses across every account/card |
+| `--final-balance 15000` | Balance on the last day in the data (easier if you know today's balance) |
+| `--account 123-456789` | Optional: limit to one account/card only |
 | `-o output/balance_by_year.png` | Output image path |
 | `--show` | Open the plot window |
 
-Without `--initial-balance`, the chart shape is correct but Y values are relative (starts at 0).
+Pass exactly one of `--initial-balance` or `--final-balance`, or neither for a relative chart (starts at 0).
 
 ## How it works
 
