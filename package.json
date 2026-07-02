@@ -1,0 +1,8 @@
+{
+  "name": "hapoalim-parsing",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "scrape": "NODE_PATH=$(npm root -g) node scrape.js"
+  }
+}

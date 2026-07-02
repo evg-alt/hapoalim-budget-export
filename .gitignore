@@ -1,0 +1,5 @@
+.browser-profile/
+explore/
+hapoalim_*.json
+hapoalim_*.csv
+node_modules/
