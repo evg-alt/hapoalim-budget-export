@@ -10,6 +10,28 @@ After you log in to [Bank Hapoalim](https://www.bankhapoalim.co.il/) and open yo
 
 This repository uses [Playwright](https://playwright.dev/) to open the real bank page, expand categories, and write a single merged table to `output/`.
 
+## The bank page
+
+After login, open **ניהול תקציב** (budget management). The page is built for browsing, not export:
+
+- **Month tabs** across the top — e.g. `יוני 26` (June 2026).
+- **Summary cards** — **ההכנסות שלי** (my income) and **ההוצאות שלי** (my expenses).
+- **Category table** — each row is a budget category with a total. Individual transactions are hidden until you expand.
+
+### Collapsed (default)
+
+Categories show only totals. You cannot copy all transactions from this view.
+
+![Budget page with categories collapsed (amounts blurred)](docs/pfm-budget-collapsed.png)
+
+### Expanded (after לפתוח הכל)
+
+Click **לפתוח הכל** (“open all”) and each category reveals a sub-table: description, date, account/card, amount. The script automates exactly this step for every category and both income and expenses.
+
+![Budget page with categories expanded (amounts blurred)](docs/pfm-budget-expanded.png)
+
+The collector flattens these nested sub-tables into one CSV row per transaction.
+
 ## Requirements
 
 - **Node.js** (v18+ recommended)
@@ -61,7 +83,10 @@ File: `output/hapoalim_<start>_<end>.csv` (add `--json` for JSON too).
 | `חשבון` | Account or last digits of card |
 | `סכום` | Amount (no `₪`, commas, or spaces) |
 
-Anonymized sample: [`examples/hapoalim_example.csv`](examples/hapoalim_example.csv)
+Anonymized sample:
+
+- CSV: [`examples/hapoalim_example.csv`](examples/hapoalim_example.csv)
+- Markdown table: [`examples/hapoalim_example.md`](examples/hapoalim_example.md)
 
 **Do not commit your real `output/` files** — they contain financial data. The `output/` folder is gitignored.
 
@@ -93,8 +118,8 @@ Technical notes: [docs/developer-notes.md](docs/developer-notes.md)
 ```text
 scripts/collect.js   Main entry point
 lib/                 Collection logic and Playwright helpers
-examples/            Anonymized sample CSV (safe to commit)
-docs/                Architecture + developer notes
+examples/            Sample CSV + markdown table (safe to commit)
+docs/                Screenshots, architecture, developer notes
 dev/                 Maintainer browser tools (not for end users)
 output/              Your exports (gitignored)
 ```
