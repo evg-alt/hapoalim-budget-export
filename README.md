@@ -16,7 +16,7 @@ Log in and open **ניהול תקציב** in your personal cabinet. You get mont
 
 ![ניהול תקציב — category summary view](docs/pfm-overview.png)
 
-**Expanded category** — click a category (or **לפתוח הכל** to open all). A sub-table appears with each transaction: description, date, how you paid, amount. The script reads these sub-tables for every category, in both **הכנסות** and **הוצאות**:
+**Expanded category** — in the bank UI you can open **one category** at a time (as in the screenshot below) or click **לפתוח הכל** (“open all”) to unfold every category at once. Either way, a sub-table appears with each transaction: description, date, how you paid, amount. The script clicks **לפתוח הכל** automatically and reads all sub-tables, for both **הכנסות** and **הוצאות**:
 
 ![Expanded category with transaction rows (amounts blurred)](docs/pfm-category-expanded.png)
 
@@ -52,7 +52,6 @@ npm run collect -- 2026/06 --json    # optional JSON after the date
 | `2026/06` | Full June 2026 |
 | `2026/04-2026/06` | Full months April–June 2026 |
 | `2026/06/01-2026/06/30` | Exact inclusive dates |
-| `2026/04/00-2026/06/30` | `00` = start/end of month |
 
 Months with no tab or no data yet are skipped silently.
 
