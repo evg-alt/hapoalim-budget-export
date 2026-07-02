@@ -197,13 +197,12 @@ Example income row after expanding **משכורת/קצבה** (June 2026):
 |--------|-----|---------------|------|
 | משכורת-נט | 2026/06/14 | 123-456789 | 10,000.00 ₪ |
 
-Example rows after expanding **הכנסות אחרות** (June 2026, 3 transactions):
+Example rows after expanding **הכנסות אחרות** (June 2026):
 
 | ההכנסה | מתי | החשבון/הכרטיס | סכום |
 |--------|-----|---------------|------|
-| העברה מחשבון חיסכון | 2026/06/11 | 123-456789 | 500.00 ₪ |
 | ביטוח לאומי | 2026/06/02 | 123-456789 | 500.00 ₪ |
-| העברה מחשבון חיסכון | 2026/06/01 | 123-456789 | 500.00 ₪ |
+| העברה מחשבון חיסכון | 2026/06/11 | 123-456789 | 500.00 ₪ |
 
 Skip sub-table footer row `סה"כ {category name}`.
 
@@ -303,7 +302,6 @@ Collect full bank months that overlap the requested range, then filter rows by `
 | `2026/06` | Full June 2026 |
 | `2026/04-2026/06` | Full months April–June 2026 |
 | `2026/06/01-2026/06/30` | Exact inclusive dates |
-| `2026/04/00-2026/06/30` | `00` = month boundary (→ 1st or last day) |
 
 Implementation: `lib/date-range.js` (parse), `lib/collect-session.js` (multi-tab pipeline), `scripts/collect.js` (CLI).
 

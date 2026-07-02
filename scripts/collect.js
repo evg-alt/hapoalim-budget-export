@@ -89,7 +89,6 @@ function printUsage() {
   npm run collect
   npm run collect -- 2026/06/01-2026/06/30
   npm run collect -- 2026/05/01-2026/06/01
-  npm run collect -- 2026/04/00-2026/06/30
   npm run collect -- 2026/04-2026/06
   npm run collect -- 2026/04 --json
   npm run collect -- 2026/04 --keeper
