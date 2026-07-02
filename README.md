@@ -22,7 +22,14 @@ Log in and open **ניהול תקציב** in your personal cabinet. You get mont
 
 ## Requirements
 
-- **Node.js** (v18+ recommended)
+- **[Node.js](https://nodejs.org/en/download)** v18 or newer (includes `npm`)
+
+Clone the repo, then run **`npm install`**. That does two things:
+
+1. Installs the [Playwright](https://playwright.dev/) npm package (the only project dependency).
+2. Runs `playwright install chromium` automatically — downloads a local Chromium build the script uses to open the bank page.
+
+Nothing else is required. No global tools, no separate browser install.
 
 ## Quick start
 
