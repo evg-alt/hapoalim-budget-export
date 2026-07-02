@@ -6,6 +6,8 @@
     "scrape": "NODE_PATH=$(npm root -g) node scripts/scrape.js",
     "keep-open": "NODE_PATH=$(npm root -g) node scripts/explore/keep-open.js",
     "snapshot": "NODE_PATH=$(npm root -g) node scripts/explore/snapshot.js",
-    "switch-mode": "NODE_PATH=$(npm root -g) node scripts/explore/switch-mode.js"
+    "switch-mode": "NODE_PATH=$(npm root -g) node scripts/explore/switch-mode.js",
+    "collect": "NODE_PATH=$(npm root -g) node scripts/collect.js",
+    "collect:dev": "NODE_PATH=$(npm root -g) node scripts/collect.js --keeper"
   }
 }

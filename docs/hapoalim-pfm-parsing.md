@@ -177,6 +177,36 @@ await frame.getByText('לפתוח הכל', { exact: true }).click()
 
 Wait ~1–1.5s for sub-tables to render.
 
+### Category row selector (verified 2026-07-02, income view)
+
+Category rows are **`<tr role="button" class="expandable-row collapse-toggle">`**, not `<button>`.
+
+```javascript
+await frame.locator('tr.expandable-row[role="button"]').first().click()
+// aria-expanded becomes "true"; sub-table appears below
+```
+
+After expand, a **nested sub-table** appears with transaction columns.
+
+**Income sub-table columns:** `ההכנסה` · `מתי` · `החשבון/הכרטיס` · `מה תרצה לעשות?` · `סכום`  
+**Expenses sub-table columns:** `על מה הוצאתי` · `מתי` · `איך שילמתי` · `מה תרצה לעשות?` · `סכום`
+
+Example income row after expanding **משכורת/קצבה** (June 2026):
+
+| ההכנסה | מתי | החשבון/הכרטיס | סכום |
+|--------|-----|---------------|------|
+| משכורת-נט | 2026/06/14 | 123-456789 | 10,000.00 ₪ |
+
+Example rows after expanding **הכנסות אחרות** (June 2026, 3 transactions):
+
+| ההכנסה | מתי | החשבון/הכרטיס | סכום |
+|--------|-----|---------------|------|
+| העברה מחשבון חיסכון | 2026/06/11 | 123-456789 | 500.00 ₪ |
+| ביטוח לאומי | 2026/06/02 | 123-456789 | 500.00 ₪ |
+| העברה מחשבון חיסכון | 2026/06/01 | 123-456789 | 500.00 ₪ |
+
+Skip sub-table footer row `סה"כ {category name}`.
+
 ### Fallback: per-category
 
 Category rows are buttons with `aria-expanded="false"` when collapsed. Text looks like:
@@ -246,6 +276,7 @@ Quick manual check: `./snapshot.sh` and inspect `explore/latest.json`.
 |--------------|---------|-------------|
 | Wait only for `/pfm` URL | Iframe empty | `waitForBudgetPageReady()` |
 | `frame.locator('button')` for mode switch | Misses `div[role="button"]` | `getByRole('button', { name: /…/ })` |
+| `button[aria-expanded="false"]` for categories | Categories are `<tr role="button">` | `tr.expandable-row[role="button"]` |
 | `/^\S+\s+\d{2}$/` for month tabs | Failed on Hebrew / spacing | `HEBREW_MONTHS` + `parseMonthLabel()` |
 | `npm install playwright` locally | Redundant; user has global install | `NODE_PATH=$(npm root -g)` via shell wrappers |
 | Browser MCP for this task | User wants Playwright only | `npm run keep-open` + `npm run snapshot` |
@@ -257,9 +288,27 @@ Quick manual check: `./snapshot.sh` and inspect `explore/latest.json`.
 | Date | Change |
 |------|--------|
 | 2026-07-02 | Initial document from first exploration session: iframe architecture, readiness markers, mode switch, month tabs, expand-all, session profile, CDP snapshot workflow |
-| 2026-07-02 | Repo restructure: `lib/`, `scripts/`, `output/`; removed probe scripts; scrape uses shared helpers |
+| 2026-07-02 | Category rows are `tr.expandable-row[role="button"]`; income sub-table columns verified on משכורת/קצבה |
+| 2026-07-02 | `npm run collect` — date-range CLI; collect overlapping bank months, filter by `תאריך`; output `סכום` without `₪`/commas |
 
 ---
+
+## Date-range collection (`npm run collect`)
+
+Collect full bank months that overlap the requested range, then filter rows by `תאריך` (`YYYY/MM/DD`) for day-precise ranges. Month-only ranges (`2026/04-2026/06`) include all rows from collected months. Missing bank tabs or months with no data yet are skipped silently.
+
+| CLI argument | Meaning |
+|--------------|---------|
+| *(none)* | Latest available bank month tab, full month |
+| `2026/06` | Full June 2026 |
+| `2026/04-2026/06` | Full months April–June 2026 |
+| `2026/06/01-2026/06/30` | Exact inclusive dates |
+| `2026/04/00-2026/06/30` | `00` = month boundary (→ 1st or last day) |
+
+Implementation: `lib/date-range.js` (parse), `lib/collect-session.js` (multi-tab pipeline), `scripts/collect.js` (CLI).
+
+Output files: `output/hapoalim_{start}_{end}.csv` / `.json`.
+
 
 ## Related files
 

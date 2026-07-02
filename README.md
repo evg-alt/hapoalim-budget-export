@@ -1,45 +1,107 @@
-# Hapoalim PFM parsing
+# Bank Hapoalim budget export
 
-Проект для автоматического сбора данных из раздела **ניהול תקציב** (управление бюджетом) в банке Hapoalim через Playwright.
+Automate extraction of income and expenses from Bank Hapoalim’s **ניהול תקציב** (Personal Finance / budget management) page into a flat CSV you can analyze in a spreadsheet.
 
-Цель — для выбранных месяцев собрать все **расходы** и **доходы** по категориям (с раскрытием подтаблиц) и сохранить результат в `output/`.
+## Why this exists
 
-## Структура репозитория
+After you log in to [Bank Hapoalim](https://www.bankhapoalim.co.il/) and open your personal area, the bank shows detailed spending and income from every source — direct debits from your account, each card you use, transfers, and more. The UI is useful for browsing but painful for analysis: categories are nested, months are separate tabs, and copying data by hand does not scale.
 
-```text
-lib/                    Общие хелперы Playwright (iframe, readiness, mode switch)
-scripts/
-  scrape.js             Основной сбор данных
-  explore/              Интерактивное исследование UI
-    keep-open.js        Долгоживущий браузер + CDP
-    snapshot.js         Снимок экрана без закрытия браузера
-    switch-mode.js      Переключение расходы / доходы
-docs/                   Документация и best practices
-output/                 Результаты scrape (JSON/CSV) — не коммитится
-explore/                Локальные снимки при исследовании — не коммитится
-.browser-profile/       Сессия Chromium — не коммитится
-```
+![Budget overview on the bank site (sensitive details blurred)](docs/pfm-overview-blurred.png)
 
-## Требования
+This repository uses [Playwright](https://playwright.dev/) to open the real bank page, expand categories, and write a single merged table to `output/`.
 
-- Node.js
-- Playwright глобально (`npm root -g` → `playwright`)
+## Requirements
 
-## Команды
+- **Node.js** (v18+ recommended)
+- **Playwright** with Chromium
+
+Install Playwright (one-time):
 
 ```bash
-npm run scrape                      # текущий месяц
-npm run scrape -- --months 3
-npm run scrape -- --month "יוני 26"
-
-npm run keep-open                   # браузер остаётся открытым
-npm run snapshot                    # снимок (пока keep-open запущен)
-npm run switch-mode -- income       # режим доходов
-npm run switch-mode -- expenses     # режим расходов
+npm install -g playwright
+npx playwright install chromium
 ```
 
-Короткие обёртки: `./run.sh`, `./keep-open.sh`, `./snapshot.sh`, `./switch-mode.sh`
+Official docs: [playwright.dev/docs/intro](https://playwright.dev/docs/intro)
 
-## Для агентов
+## Quick start
 
-`AGENTS.md` · `SNAPSHOT.md` · `BACKLOG.md` · **`docs/hapoalim-pfm-parsing.md`**
+```bash
+git clone <this-repo>
+cd hapoalim-parsing
+npm run collect
+```
+
+1. A browser window opens on the Hapoalim login page.
+2. Log in manually (including OTP if the bank asks).
+3. The script waits until you reach **ניהול תקציב** (budget management), then collects data and saves files under `output/`.
+4. The browser closes. **No cookies or session files are saved** on disk.
+
+Collect a specific range:
+
+```bash
+npm run collect -- 2026/04-2026/06
+npm run collect -- 2026/06/01-2026/06/30
+npm run collect -- --json 2026/06    # optional JSON alongside CSV
+```
+
+## Date ranges
+
+| Argument | Meaning |
+|----------|---------|
+| *(none)* | Latest month available on the bank’s month tabs |
+| `2026/06` | Full June 2026 |
+| `2026/04-2026/06` | Full months April–June 2026 |
+| `2026/06/01-2026/06/30` | Exact inclusive dates |
+| `2026/04/00-2026/06/30` | `00` = start/end of month |
+
+The script loads every bank month tab that overlaps your range (both **הכנסות** income and **הוצאות** expenses), then filters by date when you gave exact days. Months with no tab yet or no data are skipped silently; you get whatever the bank exposes.
+
+## Output format
+
+Files: `output/hapoalim_<start>_<end>.csv` (always). Add `--json` to also write a JSON file.
+
+| Column | Description |
+|--------|-------------|
+| `סוג` | `הכנסות` (income) or `הוצאות` (expenses) |
+| `קטגוריה` | Budget category |
+| `תיאור` | Transaction description |
+| `תאריך` | Date `YYYY/MM/DD` |
+| `חשבון` | Account or last digits of card |
+| `סכום` | Amount (no `₪`, commas, or spaces) |
+
+An anonymized sample: [`output/example/hapoalim_example.csv`](output/example/hapoalim_example.csv)
+
+**Do not commit your real `output/` files** — they contain financial data. Only the `output/example/` folder is meant for git.
+
+## Security
+
+- Default `npm run collect` uses a **temporary browser session**. Nothing is written to `.browser-profile/`.
+- Your credentials and transactions stay on your machine. Review `output/` before sharing anything.
+- Real exports are gitignored; keep them local.
+
+---
+
+## Developer options (optional)
+
+For iterating on selectors or debugging the page, you can keep a persistent browser and saved cookies. **Not recommended** for normal use — a saved bank session on disk is a security risk if you do not understand the implications.
+
+```bash
+npm run keep-open          # persistent Chromium + CDP on :9333
+npm run collect -- --keeper 2026/06
+npm run snapshot           # dump page structure while keep-open runs
+```
+
+See `docs/hapoalim-pfm-parsing.md` for UI quirks (iframe, Hebrew month tabs, `לפתוח הכל`, etc.).
+
+Shell wrappers (`./keep-open.sh`, `./run.sh`) set `NODE_PATH` for a global Playwright install.
+
+## Project layout
+
+```text
+lib/                 Playwright helpers and collection logic
+scripts/collect.js   Main entry point
+scripts/explore/     Developer browser tools
+docs/                Screenshot + parsing notes
+output/example/      Anonymized sample CSV (safe to commit)
+```

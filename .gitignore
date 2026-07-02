@@ -1,4 +1,16 @@
+# Sensitive / local runtime data
 .browser-profile/
 explore/
-output/
+output/*
+!output/example/
+!output/example/**
+
+# Agent-local files (not shared via git)
+AGENTS.md
+BACKLOG.md
+SNAPSHOT.md
+log.md
+.agents/
+
+# Dependencies
 node_modules/
