@@ -155,15 +155,35 @@ Format: `{Hebrew month} {2-digit year}` — e.g. **יוני 26**, **מאי 25**.
 
 ### Clicking a month
 
+Implemented in `clickMonthTab()` (`pfm-helpers.js`):
+
+1. **Scroll** off-screen tabs into range via `ensureMonthTabVisible()` (arrow buttons on `.month-upper-selector`).
+2. **Plan A (preferred):** DOM `el.click()` inside `frame.evaluate()` — works even when the tab is outside the viewport.
+3. **Plan B (fallback):** Playwright locator after scroll:
+
 ```javascript
-frame.getByRole('button', { name: new RegExp(`^${monthName}\\s+${yearSuffix}$`) })
+frame.getByRole('button', { name: new RegExp(`^${monthName}\\s+${yearSuffix}$`) }).click()
 ```
+
+### Scrolling the month bar
+
+1. **Plan A:** `div.arrow.arrow-right` (older) / `div.arrow-left` (newer).
+2. **Plan B:** month-strip class arrows, then codegen-style `getByRole('button').nth(1)` / `nth(0)` (right / left).
+
+`scrollLeft` on the container does **not** work on this UI.
+
+### Empty months
+
+Some tabs (often oldest/newest in range) show **אין נתונים להצגה** instead of income/expense cards and the category table. Treat as empty immediately — do not wait for mode buttons or `לפתוח הכל`.
+
+`isMonthEmpty()` / `waitForMonthLoaded()` in `pfm-helpers.js`; `collectBankMonth()` skips further collection for that tab.
 
 ### Discovery
 
-Collect all buttons in iframe, parse with `parseMonthLabel()`. On 2026-07-02 live probe: **25** month tabs visible without scrolling.
+Collect month tabs from iframe (`[role="button"]` on `<li>` elements in `monthList`). All tabs are present in the DOM (~25); the month bar scrolls horizontally so only a subset is in the viewport at once.
 
-**Open question (backlog):** older months may require scrolling the month bar — not verified yet.
+- **Scroll** the month list container (or arrow buttons on the strip) before **clicking** off-screen tabs when using Plan B — Playwright cannot click tabs outside the viewport.
+- **Online retention:** the bank shows about **two years** of months online; older history is not in the UI (request from branch/phone). Example: range `2024/02` may start at **יולי 24** on the tab bar, not February 2024.
 
 ---
 
@@ -279,6 +299,8 @@ Quick manual check: `npm run dev:snapshot` and inspect `explore/latest.json`.
 | `/^\S+\s+\d{2}$/` for month tabs | Failed on Hebrew / spacing | `HEBREW_MONTHS` + `parseMonthLabel()` |
 | `npm install playwright` locally | Fragile global `NODE_PATH` setup | `playwright` in `devDependencies` + `npm install` |
 | Browser MCP for this task | User wants Playwright only | `npm run dev:keep-open` + `npm run dev:snapshot` |
+| Playwright `.click()` on off-screen month tab | Outside viewport error | DOM `evaluate` click (Plan A) + arrow scroll |
+| `collect --keeper` reloads page | Kicks session to login | `reload: !useKeeper` in `scripts/collect.js` |
 
 ---
 
@@ -289,12 +311,13 @@ Quick manual check: `npm run dev:snapshot` and inspect `explore/latest.json`.
 | 2026-07-02 | Initial document from first exploration session: iframe architecture, readiness markers, mode switch, month tabs, expand-all, session profile, CDP snapshot workflow |
 | 2026-07-02 | Category rows are `tr.expandable-row[role="button"]`; income sub-table columns verified on משכורת/קצבה |
 | 2026-07-02 | `npm run collect` — date-range CLI; collect overlapping bank months, filter by `תאריך`; output `סכום` without `₪`/commas |
+| 2026-07-02 | Month bar scroll + DOM tab click; empty-month fast path (`אין נתונים להצגה`); `--keeper` no reload; ~2-year online history documented |
 
 ---
 
 ## Date-range collection (`npm run collect`)
 
-Collect full bank months that overlap the requested range, then filter rows by `תאריך` (`YYYY/MM/DD`) for day-precise ranges. Month-only ranges (`2026/04-2026/06`) include all rows from collected months. Missing bank tabs or months with no data yet are skipped silently.
+Collect full bank months that overlap the requested range, then filter rows by `תאריך` (`YYYY/MM/DD`) for day-precise ranges. Month-only ranges (`2026/04-2026/06`) include all rows from collected months. Missing bank tabs or months with no data yet are skipped silently (often because online history is capped at ~2 years).
 
 | CLI argument | Meaning |
 |--------------|---------|
@@ -307,9 +330,8 @@ Implementation: `lib/date-range.js` (parse), `lib/collect-session.js` (multi-tab
 
 Output files: `output/hapoalim_{start}_{end}.csv` / `.json`.
 
-
 ## Related files
 
 - `lib/pfm-helpers.js` — canonical implementations
 - `scripts/collect.js` — main data extraction
-- `dev/` — live browser tools for maintainers
+- `dev/` — live browser tools for maintainers (`probe-month-tabs.js`, `probe-month-scroll.js`, `probe-select-month.js` for month-bar debugging)

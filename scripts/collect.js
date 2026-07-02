@@ -150,9 +150,9 @@ function printTable(rows, limit = 15) {
       }
 
       if (useKeeper) {
-        console.log('Reloading PFM page...');
+        console.log('Using keeper session (no page reload).');
       }
-      result = await collectDateRange(page, { range, reload: useKeeper });
+      result = await collectDateRange(page, { range, reload: !useKeeper });
     }
 
     const { range, rows, monthTabs, missingMonths, emptyMonths, rawCount } = result;

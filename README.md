@@ -58,7 +58,9 @@ See [Date ranges](#date-ranges) for all formats.
 | `2026/04-2026/06` | Full months April–June 2026 |
 | `2026/06/01-2026/06/30` | Exact inclusive dates |
 
-Months with no tab or no data yet are skipped silently.
+Months with no tab, or a tab that shows **אין נתונים להצגה** (no data), are skipped silently.
+
+**Online history limit:** Bank Hapoalim’s budget page only shows about **two years** of months in the tab bar (~25 tabs). Older data is not available online — request it from the bank by phone or at a branch. If you ask for `2024/02-2026/07` but the UI starts at e.g. **יולי 24**, the tool collects what exists and warns about the rest.
 
 ## Output format
 
@@ -86,6 +88,27 @@ Sample output (anonymized; full files in [`examples/`](examples/)):
 
 **Do not commit your real `output/` files** — they contain financial data. The `output/` folder is gitignored.
 
+## Balance chart
+
+Plot daily checking-account balance by year (similar to a bank balance sawtooth chart):
+
+```bash
+pip install -r analysis/requirements.txt
+npm run plot -- --initial-balance 12000
+```
+
+Uses the newest `output/hapoalim_*.csv` by default. Options:
+
+| Flag | Meaning |
+|------|---------|
+| `--initial-balance 12000` | Balance on the day before the first transaction |
+| `--account 123-456789` | Checking account only (default) |
+| `--all-accounts` | Income minus all expenses across every account/card |
+| `-o output/balance_by_year.png` | Output image path |
+| `--show` | Open the plot window |
+
+Without `--initial-balance`, the chart shape is correct but Y values are relative (starts at 0).
+
 ## How it works
 
 See [docs/architecture.md](docs/architecture.md) for the module layout and data flow.
@@ -105,8 +128,9 @@ This tool runs **entirely on your machine**. It is plain Node.js + Playwright �
 ## For maintainers
 
 ```bash
+./scripts/bootstrap-agent-setup.sh   # local agent rules (gitignored); run once per clone
 npm run dev:keep-open
-npm run collect -- 2026/06 --keeper
+npm run collect -- 2026/06 --keeper   # reuses open browser; does not reload the page
 npm run dev:snapshot
 ```
 

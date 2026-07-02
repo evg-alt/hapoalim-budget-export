@@ -11,7 +11,9 @@ flowchart TD
   C --> D[ניהול תקציב / PFM page]
   D --> E[Parse date range]
   E --> F[For each bank month tab]
-  F --> G[הכנסות view]
+  F --> F2{אין נתונים?}
+  F2 -->|yes| F
+  F2 -->|no| G[הכנסות view]
   F --> H[הוצאות view]
   G --> I[Expand categories / לפתוח הכל]
   H --> I
@@ -29,7 +31,7 @@ flowchart TD
 | `lib/collect-session.js` | Multi-month pipeline: select tabs, collect both views |
 | `lib/collect-transactions.js` | Expand categories, parse rows, CSV formatting |
 | `lib/date-range.js` | Parse `2026/04-2026/06` style arguments |
-| `lib/pfm-helpers.js` | Iframe access, readiness checks, mode switch |
+| `lib/pfm-helpers.js` | Iframe access, readiness checks, mode switch, month tab scroll/click |
 
 ## Bank page structure
 
@@ -59,7 +61,7 @@ Each CSV row is one transaction:
 ## Date ranges
 
 1. Compute which calendar months overlap the requested range.
-2. Collect only month tabs that exist on the bank UI (missing months are skipped silently).
+2. Collect only month tabs that exist on the bank UI (missing months are skipped; online history is ~2 years).
 3. For month-only ranges (`2026/04-2026/06`), include all rows from collected months.
 4. For day-precise ranges (`2026/05/01-2026/06/15`), filter rows by `תאריך` after collection.
 
