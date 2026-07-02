@@ -1,36 +1,24 @@
-# Bank Hapoalim budget export
+# hapoalim-budget-export
 
-Automate extraction of income and expenses from Bank Hapoalim’s **ניהול תקציב** (Personal Finance / budget management) page into a flat CSV you can analyze in a spreadsheet.
+Export income and expenses from Bank Hapoalim’s **ניהול תקציב** (budget management) page into a flat CSV for spreadsheets.
 
 ## Why this exists
 
-After you log in to [Bank Hapoalim](https://www.bankhapoalim.co.il/) and open your personal area, the bank shows detailed spending and income from every source — direct debits from your account, each card you use, transfers, and more. The UI is useful for browsing but painful for analysis: categories are nested, months are separate tabs, and copying data by hand does not scale.
+In your [Bank Hapoalim](https://www.bankhapoalim.co.il/) personal area, **ניהול תקציב** shows spending and income from every source — account debits, cards, transfers, and more. Useful to browse, painful to analyze: categories are nested, months sit on separate tabs, and the data you need is buried inside expandable rows.
 
-![Budget overview on the bank site (sensitive details blurred)](docs/pfm-overview-blurred.png)
+This tool uses [Playwright](https://playwright.dev/) on your machine to open that page, expand everything, and write one table to `output/`.
 
-This repository uses [Playwright](https://playwright.dev/) to open the real bank page, expand categories, and write a single merged table to `output/`.
+## What the bank page looks like
 
-## The bank page
+Log in and open **ניהול תקציב** in your personal cabinet. You get month tabs, income/expense summary cards, and a category table — one row per budget category with its monthly total.
 
-After login, open **ניהול תקציב** (budget management). The page is built for browsing, not export:
+**General view** — categories collapsed; you see totals but not individual transactions:
 
-- **Month tabs** across the top — e.g. `יוני 26` (June 2026).
-- **Summary cards** — **ההכנסות שלי** (my income) and **ההוצאות שלי** (my expenses).
-- **Category table** — each row is a budget category with a total. Individual transactions are hidden until you expand.
+![ניהול תקציב — category summary view](docs/pfm-overview.png)
 
-### Collapsed (default)
+**Expanded category** — click a category (or **לפתוח הכל** to open all). A sub-table appears with each transaction: description, date, how you paid, amount. The script reads these sub-tables for every category, in both **הכנסות** and **הוצאות**:
 
-Categories show only totals. You cannot copy all transactions from this view.
-
-![Budget page with categories collapsed (amounts blurred)](docs/pfm-budget-collapsed.png)
-
-### Expanded (after לפתוח הכל)
-
-Click **לפתוח הכל** (“open all”) and each category reveals a sub-table: description, date, account/card, amount. The script automates exactly this step for every category and both income and expenses.
-
-![Budget page with categories expanded (amounts blurred)](docs/pfm-budget-expanded.png)
-
-The collector flattens these nested sub-tables into one CSV row per transaction.
+![Expanded category with transaction rows (amounts blurred)](docs/pfm-category-expanded.png)
 
 ## Requirements
 
@@ -40,22 +28,20 @@ The collector flattens these nested sub-tables into one CSV row per transaction.
 
 ```bash
 git clone <this-repo>
-cd hapoalim-parsing
+cd hapoalim-budget-export
 npm install
 npm run collect
 ```
 
 1. A browser window opens on the Hapoalim login page.
 2. Log in manually (including OTP if the bank asks).
-3. The script waits until you reach **ניהול תקציב** (budget management), then collects data and saves a CSV under `output/`.
-4. The browser closes. **No cookies or session files are saved** on disk.
-
-Collect a specific range:
+3. The script waits until you reach **ניהול תקציב**, collects data, and saves a CSV under `output/`.
+4. The browser closes. No session data is saved — see [Security and privacy](#security-and-privacy).
 
 ```bash
 npm run collect -- 2026/04-2026/06
 npm run collect -- 2026/06/01-2026/06/30
-npm run collect -- --json 2026/06    # optional JSON alongside CSV
+npm run collect -- 2026/06 --json    # optional JSON after the date
 ```
 
 ## Date ranges
@@ -68,11 +54,11 @@ npm run collect -- --json 2026/06    # optional JSON alongside CSV
 | `2026/06/01-2026/06/30` | Exact inclusive dates |
 | `2026/04/00-2026/06/30` | `00` = start/end of month |
 
-The script loads every bank month tab that overlaps your range (both **הכנסות** income and **הוצאות** expenses), then filters by date when you gave exact days. Months with no tab yet or no data are skipped silently.
+Months with no tab or no data yet are skipped silently.
 
 ## Output format
 
-File: `output/hapoalim_<start>_<end>.csv` (add `--json` for JSON too).
+File: `output/hapoalim_<start>_<end>.csv`. Add `--json` after the date for JSON too (e.g. `npm run collect -- 2026/06 --json`).
 
 | Column | Description |
 |--------|-------------|
@@ -83,10 +69,16 @@ File: `output/hapoalim_<start>_<end>.csv` (add `--json` for JSON too).
 | `חשבון` | Account or last digits of card |
 | `סכום` | Amount (no `₪`, commas, or spaces) |
 
-Anonymized sample:
+Sample output (anonymized; full files in [`examples/`](examples/)):
 
-- CSV: [`examples/hapoalim_example.csv`](examples/hapoalim_example.csv)
-- Markdown table: [`examples/hapoalim_example.md`](examples/hapoalim_example.md)
+| סוג | קטגוריה | תיאור | תאריך | חשבון | סכום |
+|-----|---------|-------|-------|-------|------|
+| הכנסות | משכורת/קצבה | משכורת-נט | 2026/06/14 | 123-456789 | 10000.00 |
+| הכנסות | הכנסות אחרות | ביטוח לאומי | 2026/06/02 | 123-456789 | 500.00 |
+| הכנסות | הכנסות אחרות | העברה מחשבון חיסכון | 2026/06/11 | 123-456789 | 500.00 |
+| הוצאות | נופש | OPENAI *CHATGPT SUBS | 2026/06/20 | 4321 | 60.00 |
+| הוצאות | נופש | GOOGLE YOUTUBEPREMIU | 2026/06/24 | 4321 | 45.00 |
+| הוצאות | בילוי ומסעדות | קפה ג'ו | 2026/06/18 | 8765 | 20.00 |
 
 **Do not commit your real `output/` files** — they contain financial data. The `output/` folder is gitignored.
 
@@ -94,32 +86,24 @@ Anonymized sample:
 
 See [docs/architecture.md](docs/architecture.md) for the module layout and data flow.
 
-## Security
+## Security and privacy
 
-- Default `npm run collect` uses a **temporary browser session**. Nothing is written to `.browser-profile/`.
-- Your credentials and transactions stay on your machine. Review `output/` before sharing anything.
+This tool runs **entirely on your machine**. It is plain Node.js + Playwright — no third-party APIs, no LLMs, no cloud. Your bank login and transaction data are not sent anywhere except between your browser and Bank Hapoalim, as in normal online banking.
+
+**Default (`npm run collect`):** a temporary browser opens, you log in, the script writes CSV (and optional JSON) to `output/`, then the browser closes. Aside from those export files, **nothing is left on disk** — no saved cookies, no browser profile.
+
+**Your exports are yours.** Use them however you like. Once the files exist on your computer, who you share them with is your responsibility — treat them like any sensitive financial document.
+
+**Optional persistent session (not default):** for development, you can keep a browser logged in to the bank between runs (`npm run dev:keep-open` + `collect --keeper`). That stores a session on disk and is riskier. Ignore this unless you are actively working on the scraper; see [For maintainers](#for-maintainers).
 
 ---
 
 ## For maintainers
 
-Persistent browser + saved cookies are **only** for debugging selectors. Not recommended for normal use.
-
 ```bash
 npm run dev:keep-open
-npm run collect -- --keeper 2026/06
+npm run collect -- 2026/06 --keeper
 npm run dev:snapshot
 ```
 
 Technical notes: [docs/developer-notes.md](docs/developer-notes.md)
-
-## Project layout
-
-```text
-scripts/collect.js   Main entry point
-lib/                 Collection logic and Playwright helpers
-examples/            Sample CSV + markdown table (safe to commit)
-docs/                Screenshots, architecture, developer notes
-dev/                 Maintainer browser tools (not for end users)
-output/              Your exports (gitignored)
-```

@@ -70,7 +70,7 @@ For selector debugging with a persistent session, see [developer-notes.md](devel
 ```bash
 npm run dev:keep-open
 npm run dev:snapshot
-npm run collect -- --keeper 2026/06
+npm run collect -- 2026/06 --keeper
 ```
 
 Normal users should only need `npm run collect`.

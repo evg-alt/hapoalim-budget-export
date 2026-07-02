@@ -6,8 +6,8 @@
  *   npm run collect
  *   npm run collect -- 2026/06/01-2026/06/30
  *   npm run collect -- 2026/04-2026/06
- *   npm run collect -- --json 2026/04
- *   npm run collect -- --keeper 2026/04   (developer: reuse keep-open session)
+ *   npm run collect -- 2026/04 --json
+ *   npm run collect -- 2026/04 --keeper   (developer: reuse keep-open session)
  */
 
 const fs = require('fs');
@@ -23,10 +23,66 @@ const { collectDateRange, resolveDefaultRange } = require('../lib/collect-sessio
 const { parseCollectRange, rangeToFilename } = require('../lib/date-range');
 const { transactionsToCsv } = require('../lib/collect-transactions');
 
-const cliArgs = process.argv.slice(2).filter((arg) => arg !== '--help' && arg !== '-h');
-const useKeeper = cliArgs.includes('--keeper') || cliArgs.includes('--dev');
-const writeJson = cliArgs.includes('--json');
-const rangeArg = cliArgs.find((arg) => !arg.startsWith('--'));
+const KNOWN_FLAGS = new Set(['--json', '--keeper', '--dev']);
+
+function parseCliArgs(argv) {
+  const args = argv.filter((arg) => arg !== '--help' && arg !== '-h');
+
+  if (args.length === 0) {
+    return { rangeArg: null, useKeeper: false, writeJson: false };
+  }
+
+  const positional = args.filter((arg) => !arg.startsWith('--'));
+  const flags = args.filter((arg) => arg.startsWith('--'));
+
+  for (const flag of flags) {
+    if (!KNOWN_FLAGS.has(flag)) {
+      throw new Error(`Unknown option: ${flag}`);
+    }
+  }
+
+  if (positional.length > 1) {
+    throw new Error('Only one date range is allowed.');
+  }
+
+  if (positional.length === 1 && args[0] !== positional[0]) {
+    throw new Error(
+      'Date range must be the first argument, then options (e.g. npm run collect -- 2026/06 --json).',
+    );
+  }
+
+  if (positional.length === 0) {
+    return {
+      rangeArg: null,
+      useKeeper: flags.includes('--keeper') || flags.includes('--dev'),
+      writeJson: flags.includes('--json'),
+    };
+  }
+
+  const optionFlags = args.slice(1);
+  for (const arg of optionFlags) {
+    if (!arg.startsWith('--')) {
+      throw new Error(`Unexpected argument "${arg}". Options go after the date range.`);
+    }
+  }
+
+  return {
+    rangeArg: positional[0],
+    useKeeper: optionFlags.includes('--keeper') || optionFlags.includes('--dev'),
+    writeJson: optionFlags.includes('--json'),
+  };
+}
+
+let rangeArg;
+let useKeeper;
+let writeJson;
+
+try {
+  ({ rangeArg, useKeeper, writeJson } = parseCliArgs(process.argv.slice(2)));
+} catch (err) {
+  console.error(`❌ ${err.message}`);
+  process.exit(1);
+}
 
 function printUsage() {
   console.log(`Usage:
@@ -35,14 +91,16 @@ function printUsage() {
   npm run collect -- 2026/05/01-2026/06/01
   npm run collect -- 2026/04/00-2026/06/30
   npm run collect -- 2026/04-2026/06
-  npm run collect -- 2026/04
+  npm run collect -- 2026/04 --json
+  npm run collect -- 2026/04 --keeper
 
-Options:
+Options (after the date range):
   --json                 Also write a JSON file (CSV is always written)
+  --keeper               Use dev:keep-open browser session
 
-Developer (persistent session):
+Developer:
   npm run dev:keep-open
-  npm run collect -- --keeper 2026/04`);
+  npm run collect -- 2026/04 --keeper`);
 }
 
 function printTable(rows, limit = 15) {
