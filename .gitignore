@@ -6,6 +6,9 @@ output/
 # Dependencies
 node_modules/
 
+# Local example generators (committed examples are CSV + PNG only)
+examples/generate_balance_example.py
+
 # Agent-local files (not shared via git)
 AGENTS.md
 BACKLOG.md

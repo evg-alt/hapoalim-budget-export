@@ -92,24 +92,28 @@ Sample output (anonymized; full files in [`examples/`](examples/)):
 
 Plot daily balance by year (all income and expenses, every account and card combined):
 
+![Example balance chart — anonymized Feb–Jun 2026 data](examples/balance_by_year.png)
+
 ```bash
 pip install -r analysis/requirements.txt
-python3 analysis/plot_balance.py output/hapoalim_2024-02-01_2026-07-31.csv \
-  -o output/balance_by_year.png \
-  --final-balance 1500
+python3 analysis/plot_balance.py examples/hapoalim_2026-02_2026-06.csv \
+  -o examples/balance_by_year.png \
+  --initial-balance 5000
 ```
 
-Omit the CSV path to use the newest `output/hapoalim_*.csv`. Options:
+With your own export, pass the CSV from `output/` instead. Omit the CSV path to use the newest `output/hapoalim_*.csv`. Options:
 
 | Flag | Meaning |
 |------|---------|
-| `--initial-balance 12000` | Balance on the day before the first transaction |
+| `--initial-balance 5000` | Balance on the day before the first transaction |
 | `--final-balance 1500` | Balance on the last day in the data (easier if you know today's balance) |
 | `--account 123-456789` | Optional: limit to one account/card only |
 | `-o output/balance_by_year.png` | Output image path |
 | `--show` | Open the plot window |
 
 Pass exactly one of `--initial-balance` or `--final-balance`, or neither for a relative chart (starts at 0).
+
+Example CSV: [`examples/hapoalim_2026-02_2026-06.csv`](examples/hapoalim_2026-02_2026-06.csv).
 
 ## How it works
 
