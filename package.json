@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "scrape": "NODE_PATH=$(npm root -g) node scrape.js"
+    "scrape": "NODE_PATH=$(npm root -g) node scripts/scrape.js",
+    "keep-open": "NODE_PATH=$(npm root -g) node scripts/explore/keep-open.js",
+    "snapshot": "NODE_PATH=$(npm root -g) node scripts/explore/snapshot.js",
+    "switch-mode": "NODE_PATH=$(npm root -g) node scripts/explore/switch-mode.js"
   }
 }

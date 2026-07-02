@@ -1,3 +1,2 @@
 #!/usr/bin/env bash
-export NODE_PATH="$(npm root -g)"
-exec node "$(dirname "$0")/snapshot.js" "$@"
+cd "$(dirname "$0")/.." && npm run snapshot -- "$@"

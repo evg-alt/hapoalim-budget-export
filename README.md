@@ -2,56 +2,44 @@
 
 Проект для автоматического сбора данных из раздела **ניהול תקציב** (управление бюджетом) в банке Hapoalim через Playwright.
 
-Цель — для выбранных месяцев собрать все **расходы** и **доходы** по категориям (с раскрытием подтаблиц) и сохранить результат в JSON/CSV.
+Цель — для выбранных месяцев собрать все **расходы** и **доходы** по категориям (с раскрытием подтаблиц) и сохранить результат в `output/`.
+
+## Структура репозитория
+
+```text
+lib/                    Общие хелперы Playwright (iframe, readiness, mode switch)
+scripts/
+  scrape.js             Основной сбор данных
+  explore/              Интерактивное исследование UI
+    keep-open.js        Долгоживущий браузер + CDP
+    snapshot.js         Снимок экрана без закрытия браузера
+    switch-mode.js      Переключение расходы / доходы
+docs/                   Документация и best practices
+output/                 Результаты scrape (JSON/CSV) — не коммитится
+explore/                Локальные снимки при исследовании — не коммитится
+.browser-profile/       Сессия Chromium — не коммитится
+```
 
 ## Требования
 
 - Node.js
-- Playwright установлен глобально (`npm root -g` → `playwright`)
-- Chromium для Playwright (`npx playwright install chromium`, если ещё не установлен)
+- Playwright глобально (`npm root -g` → `playwright`)
 
-Локальный `node_modules` не нужен — скрипты используют глобальный Playwright через `NODE_PATH`.
-
-## Быстрый старт
+## Команды
 
 ```bash
-# Разовый сбор (браузер откроется, логин вручную при необходимости)
-./run.sh
-./run.sh --months 3
-./run.sh --month "יוני 26"
+npm run scrape                      # текущий месяц
+npm run scrape -- --months 3
+npm run scrape -- --month "יוני 26"
 
-# Держать браузер открытым для исследования интерфейса
-./keep-open.sh
-
-# Снять снимок текущего экрана (пока keep-open запущен)
-./snapshot.sh
-
-# Переключить режим расходы / доходы
-./switch-mode.sh income
-./switch-mode.sh expenses
+npm run keep-open                   # браузер остаётся открытым
+npm run snapshot                    # снимок (пока keep-open запущен)
+npm run switch-mode -- income       # режим доходов
+npm run switch-mode -- expenses     # режим расходов
 ```
 
-## Файлы
-
-| Файл | Назначение |
-|------|------------|
-| `scrape.js` | Основной скрипт сбора данных |
-| `pfm-helpers.js` | Общие хелперы: iframe, readiness, переключение режима |
-| `keep-open.js` | Долгоживущий браузер с сохранением сессии |
-| `snapshot.js` | Снимок DOM/скриншот через CDP |
-| `switch-mode.js` | Переключение «ההוצאות שלי» / «ההכנסות שלי» |
-| `.browser-profile/` | Профиль Chromium (cookies, сессия) — **не коммитить** |
-| `explore/` | Локальные снимки при исследовании — **не коммитить** |
-
-## Сигналы готовности страницы
-
-Страница бюджета считается загруженной, когда внутри iframe видны:
-
-- заголовок `ניהול תקציב`
-- для расходов: `על מה הוצאתי בחודש …` и `סה"כ הוצאות בש"ח`
-- для доходов: `ההכנסות שלי בחודש …` и `סה"כ הכנסות בש"ח`
-- кнопка `לפתוח הכל`
+Короткие обёртки: `./run.sh`, `./keep-open.sh`, `./snapshot.sh`, `./switch-mode.sh`
 
 ## Для агентов
 
-См. `AGENTS.md`, `SNAPSHOT.md`, `BACKLOG.md`.
+`AGENTS.md` · `SNAPSHOT.md` · `BACKLOG.md` · **`docs/hapoalim-pfm-parsing.md`**
