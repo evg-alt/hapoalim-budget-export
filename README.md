@@ -20,36 +20,34 @@ Log in and open **ניהול תקציב** in your personal cabinet. You get mont
 
 ![Expanded category with transaction rows (amounts blurred)](docs/pfm-category-expanded.png)
 
-## Requirements
+## Get started
 
-- **[Node.js](https://nodejs.org/en/download)** v18 or newer (includes `npm`)
-
-Clone the repo, then run **`npm install`**. That does two things:
-
-1. Installs the [Playwright](https://playwright.dev/) npm package (the only project dependency).
-2. Runs `playwright install chromium` automatically — downloads a local Chromium build the script uses to open the bank page.
-
-Nothing else is required. No global tools, no separate browser install.
-
-## Quick start
+**Prerequisite:** [Node.js](https://nodejs.org/en/download) v18+ (includes `npm`).
 
 ```bash
 git clone <this-repo>
 cd hapoalim-budget-export
-npm install
+npm install          # installs Playwright + downloads Chromium (nothing else)
 npm run collect
 ```
 
-1. A browser window opens on the Hapoalim login page.
-2. Log in manually (including OTP if the bank asks).
-3. The script waits until you reach **ניהול תקציב**, collects data, and saves a CSV under `output/`.
-4. The browser closes. No session data is saved — see [Security and privacy](#security-and-privacy).
+`npm install` is the only setup step — it pulls the [Playwright](https://playwright.dev/) package and runs `playwright install chromium` so the script has a local browser. No global installs.
+
+Then:
+
+1. A browser opens on the Hapoalim login page — log in manually (OTP if asked).
+2. The script waits for **ניהול תקציב**, collects data, saves `output/hapoalim_<start>_<end>.csv`.
+3. The browser closes; no session is saved ([details](#security-and-privacy)).
+
+With a date range (flags go **after** the date):
 
 ```bash
 npm run collect -- 2026/04-2026/06
 npm run collect -- 2026/06/01-2026/06/30
-npm run collect -- 2026/06 --json    # optional JSON after the date
+npm run collect -- 2026/06 --json
 ```
+
+See [Date ranges](#date-ranges) for all formats.
 
 ## Date ranges
 
