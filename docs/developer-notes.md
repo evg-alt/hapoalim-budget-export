@@ -4,16 +4,16 @@
 
 **Last updated:** 2026-07-02  
 **Target URL:** `https://login.bankhapoalim.co.il/ng-portals/rb/he/pfm`  
-**Code:** `lib/pfm-helpers.js`, `scripts/scrape.js`, `scripts/explore/`
+**Code:** `lib/`, `scripts/collect.js`, `dev/`
 
 ---
 
 ## How to use this file
 
-- **Agents:** read this before changing scraper logic or selectors.
+- **Maintainers:** read this before changing scraper logic or selectors.
 - **After each discovery session:** append to [Changelog](#changelog) and adjust sections below.
 - **When a practice fails:** move it to [Deprecated / replaced](#deprecated--replaced) with the reason and the replacement.
-- **Do not** duplicate long prose in `AGENTS.md` — link here instead.
+- **Do not** duplicate long prose elsewhere — link here instead.
 
 ---
 
@@ -44,12 +44,12 @@ const frame = await handle.contentFrame();
 
 Use `chromium.launchPersistentContext('.browser-profile', …)` so login + OTP survive between runs.
 
-- **Do** reuse the same profile directory for `scrape.js` and `keep-open.js`.
-- **Do not** run `keep-open.sh` and `scrape.js` at the same time — Chromium locks the profile; one process wins, the other fails or behaves oddly.
+- **Do** reuse the same profile directory for `dev/keep-open.js` and `--keeper` collect runs.
+- **Do not** run `dev:keep-open` and `collect --keeper` against a conflicting second profile — Chromium locks the profile.
 
 ### Playwright install
 
-Project uses **global** Playwright (`NODE_PATH=$(npm root -g)`). Run via `./run.sh`, `./keep-open.sh`, etc. Plain `node scrape.js` fails without `NODE_PATH`.
+Playwright is a **local devDependency** (`npm install`). Chromium is installed via `postinstall`.
 
 ### Credentials
 
@@ -61,9 +61,9 @@ Project uses **global** Playwright (`NODE_PATH=$(npm root -g)`). Run via `./run.
 
 ## Live exploration workflow (recommended while developing)
 
-1. `npm run keep-open` — headed browser stays open; CDP on `http://127.0.0.1:9333`
+1. `npm run dev:keep-open` — headed browser stays open; CDP on `http://127.0.0.1:9333`
 2. User navigates / logs in as needed
-3. `npm run snapshot` — writes `explore/latest.json` + `explore/latest.png` without closing the browser
+3. `npm run dev:snapshot` — writes `explore/latest.json` + `explore/latest.png` without closing the browser
 4. `npm run switch-mode -- income|expenses` — toggle summary cards
 
 **Practice:** prefer snapshot + probe scripts over guessing selectors from recordings alone.
@@ -266,7 +266,7 @@ Before claiming “page is ready to scrape”:
 - [ ] At least one month tab parseable
 - [ ] Category table has header **קטגוריה**
 
-Quick manual check: `./snapshot.sh` and inspect `explore/latest.json`.
+Quick manual check: `npm run dev:snapshot` and inspect `explore/latest.json`.
 
 ---
 
@@ -278,8 +278,8 @@ Quick manual check: `./snapshot.sh` and inspect `explore/latest.json`.
 | `frame.locator('button')` for mode switch | Misses `div[role="button"]` | `getByRole('button', { name: /…/ })` |
 | `button[aria-expanded="false"]` for categories | Categories are `<tr role="button">` | `tr.expandable-row[role="button"]` |
 | `/^\S+\s+\d{2}$/` for month tabs | Failed on Hebrew / spacing | `HEBREW_MONTHS` + `parseMonthLabel()` |
-| `npm install playwright` locally | Redundant; user has global install | `NODE_PATH=$(npm root -g)` via shell wrappers |
-| Browser MCP for this task | User wants Playwright only | `npm run keep-open` + `npm run snapshot` |
+| `npm install playwright` locally | Fragile global `NODE_PATH` setup | `playwright` in `devDependencies` + `npm install` |
+| Browser MCP for this task | User wants Playwright only | `npm run dev:keep-open` + `npm run dev:snapshot` |
 
 ---
 
@@ -313,5 +313,5 @@ Output files: `output/hapoalim_{start}_{end}.csv` / `.json`.
 ## Related files
 
 - `lib/pfm-helpers.js` — canonical implementations
-- `scripts/scrape.js` — data extraction
-- `scripts/explore/` — live browser tools
+- `scripts/collect.js` — main data extraction
+- `dev/` — live browser tools for maintainers

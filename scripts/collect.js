@@ -41,7 +41,7 @@ Options:
   --json                 Also write a JSON file (CSV is always written)
 
 Developer (persistent session):
-  npm run keep-open
+  npm run dev:keep-open
   npm run collect -- --keeper 2026/04`);
 }
 
