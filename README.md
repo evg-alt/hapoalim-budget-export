@@ -6,6 +6,8 @@ Export income and expenses from Bank Hapoalim’s **ניהול תקציב** (bud
 
 In your [Bank Hapoalim](https://www.bankhapoalim.co.il/) personal area, **ניהול תקציב** shows spending and income from every source — account debits, cards, transfers, and more. Useful to browse, painful to analyze: categories are nested, months sit on separate tabs, and the data you need is buried inside expandable rows.
 
+The website only keeps about **two years** online (~25 tabs). Older data is not on the page — get it from the bank by phone or at a branch. This tool can export only what the UI shows.
+
 This tool uses [Playwright](https://playwright.dev/) on your machine to open that page, expand everything, and write one table to `output/`.
 
 ## What the bank page looks like
@@ -58,9 +60,7 @@ See [Date ranges](#date-ranges) for all formats.
 | `2026/04-2026/06` | Full months April–June 2026 |
 | `2026/06/01-2026/06/30` | Exact inclusive dates |
 
-Months with no tab, or a tab that shows **אין נתונים להצגה** (no data), are skipped silently.
-
-**Online history limit:** Bank Hapoalim’s budget page only shows about **two years** of months in the tab bar (~25 tabs). Older data is not available online — request it from the bank by phone or at a branch. If you ask for `2024/02-2026/07` but the UI starts at e.g. **יולי 24**, the tool collects what exists and warns about the rest.
+Months with no tab, or a tab that shows **אין נתונים להצגה** (no data), are skipped silently. How far back the bank UI goes is described [above](#why-this-exists).
 
 ## Output format
 
