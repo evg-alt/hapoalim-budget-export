@@ -25,7 +25,7 @@ Log in and open **ניהול תקציב** in your personal cabinet. You get mont
 **Prerequisite:** [Node.js](https://nodejs.org/en/download) v18+ (includes `npm`).
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/evg-alt/hapoalim-budget-export.git
 cd hapoalim-budget-export
 npm install          # installs Playwright + downloads Chromium (nothing else)
 npm run collect
