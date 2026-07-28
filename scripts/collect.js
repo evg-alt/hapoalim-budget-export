@@ -23,13 +23,19 @@ const { collectDateRange, resolveDefaultRange } = require('../lib/collect-sessio
 const { parseCollectRange, rangeToFilename } = require('../lib/date-range');
 const { transactionsToCsv } = require('../lib/collect-transactions');
 
-const KNOWN_FLAGS = new Set(['--json', '--keeper', '--dev']);
+const KNOWN_FLAGS = new Set(['--json', '--keeper', '--dev', '--force-close', '--launch']);
 
 function parseCliArgs(argv) {
   const args = argv.filter((arg) => arg !== '--help' && arg !== '-h');
 
   if (args.length === 0) {
-    return { rangeArg: null, useKeeper: false, writeJson: false };
+    return {
+      rangeArg: null,
+      useKeeper: false,
+      writeJson: false,
+      forceClose: false,
+      allowLaunch: false,
+    };
   }
 
   const positional = args.filter((arg) => !arg.startsWith('--'));
@@ -56,6 +62,8 @@ function parseCliArgs(argv) {
       rangeArg: null,
       useKeeper: flags.includes('--keeper') || flags.includes('--dev'),
       writeJson: flags.includes('--json'),
+      forceClose: flags.includes('--force-close'),
+      allowLaunch: flags.includes('--launch'),
     };
   }
 
@@ -70,15 +78,19 @@ function parseCliArgs(argv) {
     rangeArg: positional[0],
     useKeeper: optionFlags.includes('--keeper') || optionFlags.includes('--dev'),
     writeJson: optionFlags.includes('--json'),
+    forceClose: optionFlags.includes('--force-close'),
+    allowLaunch: optionFlags.includes('--launch'),
   };
 }
 
 let rangeArg;
 let useKeeper;
 let writeJson;
+let forceClose;
+let allowLaunch;
 
 try {
-  ({ rangeArg, useKeeper, writeJson } = parseCliArgs(process.argv.slice(2)));
+  ({ rangeArg, useKeeper, writeJson, forceClose, allowLaunch } = parseCliArgs(process.argv.slice(2)));
 } catch (err) {
   console.error(`❌ ${err.message}`);
   process.exit(1);
@@ -114,6 +126,49 @@ function printTable(rows, limit = 15) {
   }
 }
 
+function verifyCollectResult(result) {
+  const { range, rows, monthTabs, emptyMonths, rawCount } = result;
+  const issues = [];
+
+  if (!monthTabs.length && !emptyMonths.length) {
+    issues.push('no bank months were processed');
+  }
+
+  const expectedMonths = monthTabs.length;
+  const gotDataMonths = monthTabs.filter(() => true).length;
+
+  if (expectedMonths > 0 && rawCount === 0) {
+    issues.push(
+      `0 raw rows from ${expectedMonths} month tab(s) — categories may still be collapsed`,
+    );
+  }
+
+  if (!range.monthOnly && rows.length === 0 && monthTabs.length > 0) {
+    issues.push(`0 rows after date filter ${range.start} → ${range.end}`);
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues,
+    summary: `${rows.length} filtered rows (${rawCount} raw) from months: ${monthTabs.join(', ') || 'none'}`,
+  };
+}
+
+async function waitForUserAck(page, message) {
+  console.log(`\n${message}`);
+  if (process.stdin.isTTY) {
+    console.log('Inspect the browser. Press Enter here when done...');
+    await new Promise((resolve) => {
+      process.stdin.resume();
+      process.stdin.once('data', () => resolve());
+    });
+    return;
+  }
+
+  console.log('Non-interactive shell — leaving browser open for 8 minutes...');
+  await page.waitForTimeout(8 * 60 * 1000);
+}
+
 (async () => {
   if (process.argv.includes('--help') || process.argv.includes('-h')) {
     printUsage();
@@ -124,17 +179,18 @@ function printTable(rows, limit = 15) {
 
   let browser;
   let page;
+  let result;
+  let ownsBrowser = false;
+  let verification = { ok: false, issues: ['collect did not run'] };
 
   try {
-    ({ browser, page } = await openBrowserSession({ useKeeper }));
+    ({ browser, page, ownsBrowser = false } = await openBrowserSession({ useKeeper, allowLaunch }));
   } catch (err) {
     console.error(`❌ ${err.message}`);
     process.exit(1);
   }
 
   try {
-    let result;
-
     if (!rangeArg) {
       console.log('No range given — using latest available bank month');
       const { range } = await resolveDefaultRange(page);
@@ -153,6 +209,18 @@ function printTable(rows, limit = 15) {
         console.log('Using keeper session (no page reload).');
       }
       result = await collectDateRange(page, { range, reload: !useKeeper });
+    }
+
+    verification = verifyCollectResult(result);
+    console.log(`\n🔍 Verification: ${verification.summary}`);
+    if (!verification.ok) {
+      for (const issue of verification.issues) {
+        console.log(`   ❌ ${issue}`);
+      }
+      ensureExploreDir();
+      const shotPath = path.join(EXPLORE_DIR, 'collect-failed.png');
+      await page.screenshot({ path: shotPath, fullPage: true }).catch(() => null);
+      console.log(`   screenshot: ${shotPath}`);
     }
 
     const { range, rows, monthTabs, missingMonths, emptyMonths, rawCount } = result;
@@ -191,9 +259,24 @@ function printTable(rows, limit = 15) {
     }
 
     printTable(rows);
+
+    if (!verification.ok && !forceClose) {
+      await waitForUserAck(
+        page,
+        '⚠️  Collect finished but verification FAILED — browser stays open.',
+      );
+    } else if (verification.ok && forceClose && ownsBrowser) {
+      console.log('\n✅ Verification passed — closing browser (--force-close).');
+    } else if (verification.ok) {
+      console.log('\n✅ Verification passed — browser left open (default).');
+    }
   } finally {
-    if (browser) {
+    if (browser && ownsBrowser && forceClose && verification.ok) {
       await browser.close();
+    } else if (browser && !ownsBrowser) {
+      console.log('Detached from keeper — window stays open.');
+    } else if (browser && ownsBrowser) {
+      console.log('Browser left open — close manually when done.');
     }
   }
 })();

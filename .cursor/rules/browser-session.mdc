@@ -1,0 +1,72 @@
+---
+description: Hapoalim budget export — browser window must not be closed or reopened without user permission
+globs: personal/finance/hapoalim-budget-export/**
+alwaysApply: false
+---
+
+# Hapoalim collect — browser session (mandatory)
+
+Applies to `hapoalim-budget-export` and any `npm run collect` / Playwright work on Bank Hapoalim PFM.
+
+## Golden rule
+
+**One live bank window per session.** Reuse it. Do not spawn a second one. Do not close it without explicit user permission.
+
+## Before any collect
+
+1. **Check what is already running** (do not guess):
+   - `pgrep -fl 'collect\.js|keep-open'`
+   - `test -f explore/keep-open.pid && cat explore/keep-open.pid`
+   - `curl -s http://127.0.0.1:9333/json/version` (keeper CDP)
+2. If a collect or keeper process exists → **attach to it**, do not start another browser.
+3. If user says “the window is open” → treat that as authoritative; **never** `kill` the owning `node` process unless the user explicitly asks.
+
+## How to connect (priority order)
+
+| Priority | Method | Command |
+|----------|--------|---------|
+| 1 | Keeper (preferred) | `npm run dev:keep-open` once, then `npm run collect -- <range> --keeper` |
+| 2 | Keeper already up | `npm run collect -- <range> --keeper` only |
+| 3 | First-time / no window | `npm run dev:keep-open` → user logs in → `--keeper` collects |
+
+**Never** run a bare `npm run collect` that launches a new Chromium if keeper CDP (`:9333`) or an existing collect/keeper process is available.
+
+## Forbidden without explicit user permission
+
+- `kill` / `pkill` on `collect.js`, `keep-open.js`, or Playwright Chrome tied to this repo
+- `browser.close()` / closing the Playwright context after collect
+- `chromium.launch()` or `launchPersistentContext()` when keeper or an existing session is available
+- `page.reload()` when `--keeper` is used or the user already has the budget table on screen
+- Opening a **second** browser window while one already shows Hapoalim / PFM
+
+## Closing the browser
+
+Close only when **both** are true:
+
+1. Collect verification passed (rows look sane; `לפתוח הכל` was clicked; sub-rows scraped), **and**
+2. User explicitly said to close, **or** user passed `--force-close`.
+
+On verification failure: leave the window open, log what failed, ask the user.
+
+## Scraping checklist (do not “stare at collapsed page”)
+
+On each month tab, for income **and** expenses:
+
+1. Wait for category table (`קטגוריה` column + `לפתוח הכל` visible).
+2. Click **`לפתוח הכל`** (regex `/לפתוח הכל/`, not exact — icon suffix breaks exact match).
+3. Confirm expansion: `לסגור הכל` visible **or** `aria-expanded="true"` on categories **or** sub-table rows exist.
+4. Only then scrape. If 0 rows but categories exist → retry expand; do **not** declare success.
+
+## Incremental export + merge
+
+Overlap download (e.g. from `2026/06/29`), then merge:
+
+```bash
+python3 analysis/merge_exports.py \
+  output/<base>.csv output/<incremental>.csv \
+  --overlap-from 2026/06/29 -o output/hapoalim_merged.csv
+```
+
+## If stuck
+
+Report: which process owns the window, last log line, whether categories are expanded. **Do not** restart the browser as the first fix.

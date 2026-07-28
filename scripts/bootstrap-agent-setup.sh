@@ -33,6 +33,11 @@ copy "$TEMPLATES/.agents/rules/git-commits.md" "$REPO_ROOT/.agents/rules/git-com
 copy "$TEMPLATES/.agents/rules/notifications.md" "$REPO_ROOT/.agents/rules/notifications.md"
 copy "$TEMPLATES/.agents/rules/incremental-verifiable-work.md" \
   "$REPO_ROOT/.agents/rules/incremental-verifiable-work.md"
+if [[ -f "$REPO_ROOT/.agents/rules/browser-session.md" ]]; then
+  echo "  (kept local) .agents/rules/browser-session.md"
+else
+  echo "  → add .agents/rules/browser-session.md from repo template if missing"
+fi
 
 HOOK_SRC="$SETUP_ROOT/templates/githooks/commit-msg"
 HOOK_DST="$REPO_ROOT/.git/hooks/commit-msg"

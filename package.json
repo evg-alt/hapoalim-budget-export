@@ -7,6 +7,7 @@
     "postinstall": "playwright install chromium",
     "dev:keep-open": "node dev/keep-open.js",
     "dev:snapshot": "node dev/snapshot.js",
+    "dev:diagnostic": "node dev/diagnostic-collect.js",
     "dev:switch-mode": "node dev/switch-mode.js"
   },
   "devDependencies": {
